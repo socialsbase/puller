@@ -14,6 +14,7 @@ Puller is a multi-platform content archiving CLI designed to pull and archive yo
 - Dry-run mode for previewing without writing files
 - Date filtering to pull only recent posts
 - Force mode to re-pull existing articles
+- Configurable folder structure (platform subfolders or flat)
 
 ## Installation
 
@@ -90,6 +91,18 @@ Include unpublished draft articles:
 puller pull --platform devto ./output --include-drafts
 ```
 
+### Folder structure
+
+Control how output files are organized:
+
+```bash
+# Platform subfolders (default): ./output/devto/2024-03-15-article.md
+puller pull --platform devto ./output --structure platform
+
+# Flat structure: ./output/2024-03-15-article.md
+puller pull --platform devto ./output --structure flat
+```
+
 ## Output Format
 
 Pulled articles are saved as Markdown files with YAML frontmatter:
@@ -120,7 +133,7 @@ Puller maintains a `.puller-state.json` file in the output directory to track wh
 {
   "pulled": {
     "devto:12345": {
-      "local_path": "2024-03-15-building-cli-tools.md",
+      "local_path": "devto/2024-03-15-building-cli-tools.md",
       "pulled_at": "2024-03-20T10:00:00Z"
     }
   }
@@ -160,17 +173,18 @@ Use puller as a reusable GitHub Action to automatically sync content to a branch
 
 ### Inputs
 
-| Input            | Required | Default   | Description                                |
-| ---------------- | -------- | --------- | ------------------------------------------ |
-| `platform`       | Yes      | `devto`   | Platform to pull from                      |
-| `output-dir`     | Yes      | `content` | Directory for pulled content               |
-| `branch`         | No       | `live`    | Target branch for commits                  |
-| `since`          | No       | -         | Only pull articles since date (YYYY-MM-DD) |
-| `exclude-drafts` | No       | `false`   | Skip draft articles                        |
-| `force`          | No       | `false`   | Re-pull existing articles                  |
-| `dry-run`        | No       | `false`   | Preview only, no commits                   |
-| `commit-message` | No       | auto      | Custom commit message                      |
-| `version`        | No       | `latest`  | Puller version to use                      |
+| Input            | Required | Default    | Description                                       |
+| ---------------- | -------- | ---------- | ------------------------------------------------- |
+| `platform`       | Yes      | `devto`    | Platform to pull from                             |
+| `output-dir`     | Yes      | `content`  | Directory for pulled content                      |
+| `branch`         | No       | `live`     | Target branch for commits                         |
+| `since`          | No       | -          | Only pull articles since date (YYYY-MM-DD)        |
+| `exclude-drafts` | No       | `false`    | Skip draft articles                               |
+| `force`          | No       | `false`    | Re-pull existing articles                         |
+| `dry-run`        | No       | `false`    | Preview only, no commits                          |
+| `structure`      | No       | `platform` | Folder structure: `platform` or `flat`            |
+| `commit-message` | No       | auto       | Custom commit message                             |
+| `version`        | No       | `latest`   | Puller version to use                             |
 
 ### Outputs
 
@@ -180,6 +194,20 @@ Use puller as a reusable GitHub Action to automatically sync content to a branch
 | `skipped-count` | Number of articles skipped                      |
 | `committed`     | Whether changes were committed (`true`/`false`) |
 | `commit-sha`    | Commit SHA if changes were committed            |
+
+### Permissions
+
+The action requires `contents: write` permission to push commits to your repository. By default, the `GITHUB_TOKEN` only has read permissions. You must explicitly grant write access:
+
+```yaml
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+```
+
+Without this permission, the action will fail with a 403 error when attempting to push.
 
 ### Complete Workflow Example
 
@@ -194,6 +222,8 @@ on:
 jobs:
   sync:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v4
 
