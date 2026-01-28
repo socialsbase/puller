@@ -139,12 +139,14 @@ runs:
       env:
         GH_TOKEN: ${{ github.token }}
       run: |
-        # Check if we have push permission using GitHub API
-        PUSH_ACCESS=$(curl -s -H "Authorization: token $GH_TOKEN" \
+        # Check write permissions by attempting to get refs (more reliable than checking permissions field)
+        # The permissions field in repo API response is not populated for GITHUB_TOKEN
+        HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
+          -H "Authorization: token $GH_TOKEN" \
           -H "Accept: application/vnd.github.v3+json" \
-          "https://api.github.com/repos/$GITHUB_REPOSITORY" | grep -o '"push":[^,]*' | cut -d: -f2 | tr -d ' ')
+          "https://api.github.com/repos/$GITHUB_REPOSITORY/git/refs/heads")
 
-        if [ "$PUSH_ACCESS" != "true" ]; then
+        if [ "$HTTP_STATUS" != "200" ]; then
           echo "::error::Missing required permission: contents: write"
           echo "::error::Add 'permissions: contents: write' to your workflow file"
           exit 1
