@@ -1,5 +1,5 @@
 name: 'Puller - Content Sync'
-description: 'Pull content from social platforms (Dev.to) and auto-commit to a branch'
+description: 'Pull content from social platforms (Dev.to, Vibe Forem) and auto-commit to a branch'
 author: 'socialsbase'
 branding:
   icon: 'download-cloud'
