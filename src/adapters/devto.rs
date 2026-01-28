@@ -1,6 +1,6 @@
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
-use reqwest::header::{HeaderMap, HeaderValue, ACCEPT};
+use reqwest::header::{HeaderMap, HeaderValue, ACCEPT, USER_AGENT};
 use serde::Deserialize;
 use url::Url;
 
@@ -28,11 +28,16 @@ struct DevToArticle {
     body_markdown: String,
     published_at: Option<DateTime<Utc>>,
     url: String,
-    tag_list: Vec<String>,
+    tags: Vec<String>,
     #[serde(default)]
     series: Option<DevToSeries>,
     canonical_url: Option<String>,
+    #[serde(default = "default_published")]
     published: bool,
+}
+
+fn default_published() -> bool {
+    true
 }
 
 #[derive(Debug, Deserialize)]
@@ -52,6 +57,7 @@ impl DevToPuller {
             ACCEPT,
             HeaderValue::from_static("application/vnd.forem.api-v1+json"),
         );
+        headers.insert(USER_AGENT, HeaderValue::from_static("puller/0.1.0"));
 
         let client = reqwest::Client::builder()
             .default_headers(headers)
@@ -186,7 +192,7 @@ impl Puller for DevToPuller {
             body_markdown: article.body_markdown,
             published_at: article.published_at,
             url: Url::parse(&article.url).ok(),
-            tags: article.tag_list,
+            tags: article.tags,
             series: article.series.map(|s| s.name),
             canonical_url: article.canonical_url.and_then(|u| Url::parse(&u).ok()),
             is_draft: !article.published,
