@@ -199,11 +199,9 @@ runs:
           ARGS="$ARGS --force"
         fi
 
-        # Note: --structure flag is not yet supported by puller binary
-        # TODO: Uncomment when puller supports this flag
-        # if [ -n "${{ inputs.structure }}" ]; then
-        #   ARGS="$ARGS --structure ${{ inputs.structure }}"
-        # fi
+        if [ -n "${{ inputs.structure }}" ]; then
+          ARGS="$ARGS --structure ${{ inputs.structure }}"
+        fi
 
         # Ensure output directory exists
         mkdir -p "${{ inputs.output-dir }}"
