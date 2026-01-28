@@ -12,9 +12,10 @@ pub enum Platform {
 }
 
 impl Platform {
-    pub fn as_str(&self) -> &'static str {
+    #[must_use]
+    pub fn as_str(self) -> &'static str {
         match self {
-            Platform::DevTo => "devto",
+            Self::DevTo => "devto",
         }
     }
 }
@@ -30,7 +31,7 @@ impl FromStr for Platform {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s.to_lowercase().as_str() {
-            "devto" | "dev.to" | "dev" => Ok(Platform::DevTo),
+            "devto" | "dev.to" | "dev" => Ok(Self::DevTo),
             _ => Err(PullError::UnsupportedPlatform(s.to_string())),
         }
     }

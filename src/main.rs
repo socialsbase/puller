@@ -74,7 +74,7 @@ enum Commands {
 
 fn parse_date(s: &str) -> Result<NaiveDate> {
     NaiveDate::parse_from_str(s, "%Y-%m-%d")
-        .map_err(|_| PullError::InvalidDate(format!("Expected YYYY-MM-DD, got: {}", s)))
+        .map_err(|_| PullError::InvalidDate(format!("Expected YYYY-MM-DD, got: {s}")))
 }
 
 fn create_puller(platform: &str, config: &Config) -> Result<Box<dyn Puller>> {
@@ -136,9 +136,9 @@ async fn run_pull(
         let filename = writer.write_article(&article, &mut state)?;
 
         if dry_run {
-            println!("    Would write: {}", filename);
+            println!("    Would write: {filename}");
         } else {
-            println!("    Wrote: {}", filename);
+            println!("    Wrote: {filename}");
         }
 
         pulled_count += 1;
@@ -149,7 +149,7 @@ async fn run_pull(
     }
 
     println!();
-    println!("Done! Pulled: {}, Skipped: {}", pulled_count, skipped_count);
+    println!("Done! Pulled: {pulled_count}, Skipped: {skipped_count}");
 
     if dry_run {
         println!("(dry-run mode - no files were written)");
@@ -175,12 +175,11 @@ async fn run_list(platform: &str, since: Option<String>, exclude_drafts: bool) -
         let status = if meta.is_draft { "[DRAFT]" } else { "" };
         let date = meta
             .published_at
-            .map(|d| d.format("%Y-%m-%d").to_string())
-            .unwrap_or_else(|| "N/A".to_string());
+            .map_or_else(|| "N/A".to_string(), |d| d.format("%Y-%m-%d").to_string());
 
         println!("  {} {} {}", date, meta.title, status);
         if let Some(url) = &meta.url {
-            println!("    {}", url);
+            println!("    {url}");
         }
     }
 
@@ -210,7 +209,7 @@ async fn main() {
     };
 
     if let Err(e) = result {
-        eprintln!("Error: {}", e);
+        eprintln!("Error: {e}");
         std::process::exit(1);
     }
 }

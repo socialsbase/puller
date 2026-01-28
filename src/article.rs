@@ -1,3 +1,5 @@
+use std::fmt::Write;
+
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use url::Url;
@@ -12,6 +14,7 @@ pub struct PulledArticle {
     pub title: String,
     pub body_markdown: String,
     pub published_at: Option<DateTime<Utc>>,
+    #[allow(dead_code)] // Reserved for future use (e.g., verbose output)
     pub url: Option<Url>,
     pub tags: Vec<String>,
     pub series: Option<String>,
@@ -58,10 +61,12 @@ impl PulledArticle {
         output.push_str(&yaml);
 
         // Add platform ID comment for tracking
-        output.push_str(&format!(
-            "# Platform ID: {}:{}\n",
+        writeln!(
+            output,
+            "# Platform ID: {}:{}",
             self.platform, self.platform_id
-        ));
+        )
+        .expect("String write failed");
 
         output.push_str("---\n\n");
         output.push_str(&self.body_markdown);
@@ -75,13 +80,13 @@ impl PulledArticle {
     }
 
     pub fn generate_filename(&self) -> String {
-        let date_prefix = self
-            .published_at
-            .map(|dt| dt.format("%Y-%m-%d").to_string())
-            .unwrap_or_else(|| "draft".to_string());
+        let date_prefix = self.published_at.map_or_else(
+            || "draft".to_string(),
+            |dt| dt.format("%Y-%m-%d").to_string(),
+        );
 
         let slug = slugify(&self.title);
-        format!("{}-{}.md", date_prefix, slug)
+        format!("{date_prefix}-{slug}.md")
     }
 }
 

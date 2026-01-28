@@ -80,10 +80,7 @@ impl DevToPuller {
     }
 
     async fn fetch_page(&self, page: u32) -> Result<Vec<DevToArticleListItem>> {
-        let url = format!(
-            "{}/articles/me/all?page={}&per_page={}",
-            DEVTO_API_BASE, page, PER_PAGE
-        );
+        let url = format!("{DEVTO_API_BASE}/articles/me/all?page={page}&per_page={PER_PAGE}");
 
         let response = self
             .client
@@ -106,8 +103,7 @@ impl DevToPuller {
             let status = response.status();
             let body = response.text().await.unwrap_or_default();
             return Err(PullError::Api(format!(
-                "Dev.to API returned {}: {}",
-                status, body
+                "Dev.to API returned {status}: {body}"
             )));
         }
 
@@ -148,7 +144,10 @@ impl Puller for DevToPuller {
 
                 // Cache article data for later fetch (needed for drafts)
                 {
-                    let mut cache = self.article_cache.write().unwrap();
+                    let mut cache = self
+                        .article_cache
+                        .write()
+                        .expect("article cache lock poisoned");
                     cache.insert(id_str.clone(), article.clone());
                 }
 
@@ -174,7 +173,10 @@ impl Puller for DevToPuller {
     async fn fetch_article(&self, id: &str) -> Result<PulledArticle> {
         // Check cache first (needed for drafts which can't be fetched via public API)
         {
-            let cache = self.article_cache.read().unwrap();
+            let cache = self
+                .article_cache
+                .read()
+                .expect("article cache lock poisoned");
             if let Some(article) = cache.get(id) {
                 return Ok(PulledArticle {
                     platform_id: article.id.to_string(),
@@ -195,7 +197,7 @@ impl Puller for DevToPuller {
         }
 
         // Fall back to API for published articles
-        let url = format!("{}/articles/{}", DEVTO_API_BASE, id);
+        let url = format!("{DEVTO_API_BASE}/articles/{id}");
 
         let response = self
             .client
@@ -222,8 +224,7 @@ impl Puller for DevToPuller {
             let status = response.status();
             let body = response.text().await.unwrap_or_default();
             return Err(PullError::Api(format!(
-                "Dev.to API returned {}: {}",
-                status, body
+                "Dev.to API returned {status}: {body}"
             )));
         }
 
