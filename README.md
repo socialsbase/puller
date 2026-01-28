@@ -217,21 +217,9 @@ jobs:
 
 See [`examples/workflows/`](examples/workflows/) for more examples.
 
-## Project Structure
+## Contributing
 
-```
-src/
-├── main.rs           # CLI entry point and orchestration
-├── error.rs          # Custom error types
-├── config.rs         # Platform API configuration
-├── platform.rs       # Platform enum definitions
-├── article.rs        # Article struct and frontmatter generation
-├── state.rs          # Pull state tracking
-├── writer.rs         # Write articles to Markdown files
-└── adapters/
-    ├── mod.rs        # Puller trait definition
-    └── devto.rs      # Dev.to API implementation
-```
+See [CONTRIBUTING.md](CONTRIBUTING.md) for development setup and guidelines.
 
 ## License
 
