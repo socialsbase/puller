@@ -118,13 +118,13 @@ mod tests {
     }
 
     #[test]
-    fn test_generate_filename() {
+    fn test_generate_filename() -> std::result::Result<(), Box<dyn std::error::Error>> {
         let article = PulledArticle {
             platform_id: "123".to_string(),
             platform: Platform::DevTo,
             title: "Building CLI Tools in Rust".to_string(),
             body_markdown: "Content".to_string(),
-            published_at: Some("2024-03-15T10:00:00Z".parse().unwrap()),
+            published_at: Some("2024-03-15T10:00:00Z".parse()?),
             url: None,
             tags: vec![],
             series: None,
@@ -136,6 +136,7 @@ mod tests {
             article.generate_filename(),
             "2024-03-15-building-cli-tools-in-rust.md"
         );
+        Ok(())
     }
 
     #[test]

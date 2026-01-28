@@ -62,28 +62,30 @@ mod tests {
     use tempfile::TempDir;
 
     #[test]
-    fn test_state_roundtrip() {
-        let dir = TempDir::new().unwrap();
+    fn test_state_roundtrip() -> std::result::Result<(), Box<dyn std::error::Error>> {
+        let dir = TempDir::new()?;
         let mut state = PullState::default();
         state.mark_pulled(
             "devto:123".to_string(),
             "2024-03-15-test-article.md".to_string(),
         );
 
-        state.save(dir.path()).unwrap();
+        state.save(dir.path())?;
 
-        let loaded = PullState::load(dir.path()).unwrap();
+        let loaded = PullState::load(dir.path())?;
         assert!(loaded.is_pulled("devto:123"));
         assert_eq!(
             loaded.get_local_path("devto:123"),
             Some("2024-03-15-test-article.md")
         );
+        Ok(())
     }
 
     #[test]
-    fn test_load_nonexistent() {
-        let dir = TempDir::new().unwrap();
-        let state = PullState::load(dir.path()).unwrap();
+    fn test_load_nonexistent() -> std::result::Result<(), Box<dyn std::error::Error>> {
+        let dir = TempDir::new()?;
+        let state = PullState::load(dir.path())?;
         assert!(state.pulled.is_empty());
+        Ok(())
     }
 }

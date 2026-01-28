@@ -73,8 +73,8 @@ mod tests {
     use tempfile::TempDir;
 
     #[test]
-    fn test_write_article_flat() {
-        let dir = TempDir::new().unwrap();
+    fn test_write_article_flat() -> std::result::Result<(), Box<dyn std::error::Error>> {
+        let dir = TempDir::new()?;
         let writer = Writer::new(dir.path(), false, FolderStructure::Flat);
         let mut state = PullState::default();
 
@@ -83,29 +83,30 @@ mod tests {
             platform: Platform::DevTo,
             title: "Test Article".to_string(),
             body_markdown: "Hello, world!".to_string(),
-            published_at: Some("2024-03-15T10:00:00Z".parse().unwrap()),
-            url: Some("https://dev.to/user/test-article".parse().unwrap()),
+            published_at: Some("2024-03-15T10:00:00Z".parse()?),
+            url: Some("https://dev.to/user/test-article".parse()?),
             tags: vec!["rust".to_string()],
             series: None,
             canonical_url: None,
             is_draft: false,
         };
 
-        let relative_path = writer.write_article(&article, &mut state).unwrap();
+        let relative_path = writer.write_article(&article, &mut state)?;
         assert_eq!(relative_path, "2024-03-15-test-article.md");
 
         let filepath = dir.path().join(&relative_path);
         assert!(filepath.exists());
 
-        let content = std::fs::read_to_string(filepath).unwrap();
+        let content = std::fs::read_to_string(filepath)?;
         assert!(content.contains("title: Test Article"));
         assert!(content.contains("Hello, world!"));
         assert!(content.contains("# Platform ID: devto:123"));
+        Ok(())
     }
 
     #[test]
-    fn test_write_article_platform() {
-        let dir = TempDir::new().unwrap();
+    fn test_write_article_platform() -> std::result::Result<(), Box<dyn std::error::Error>> {
+        let dir = TempDir::new()?;
         let writer = Writer::new(dir.path(), false, FolderStructure::Platform);
         let mut state = PullState::default();
 
@@ -114,15 +115,15 @@ mod tests {
             platform: Platform::DevTo,
             title: "Test Article".to_string(),
             body_markdown: "Hello, world!".to_string(),
-            published_at: Some("2024-03-15T10:00:00Z".parse().unwrap()),
-            url: Some("https://dev.to/user/test-article".parse().unwrap()),
+            published_at: Some("2024-03-15T10:00:00Z".parse()?),
+            url: Some("https://dev.to/user/test-article".parse()?),
             tags: vec!["rust".to_string()],
             series: None,
             canonical_url: None,
             is_draft: false,
         };
 
-        let relative_path = writer.write_article(&article, &mut state).unwrap();
+        let relative_path = writer.write_article(&article, &mut state)?;
         assert_eq!(relative_path, "devto/2024-03-15-test-article.md");
 
         // Check the file exists in the platform subdirectory
@@ -134,15 +135,16 @@ mod tests {
         assert!(platform_dir.exists());
         assert!(platform_dir.is_dir());
 
-        let content = std::fs::read_to_string(filepath).unwrap();
+        let content = std::fs::read_to_string(filepath)?;
         assert!(content.contains("title: Test Article"));
         assert!(content.contains("Hello, world!"));
         assert!(content.contains("# Platform ID: devto:123"));
+        Ok(())
     }
 
     #[test]
-    fn test_dry_run_does_not_write() {
-        let dir = TempDir::new().unwrap();
+    fn test_dry_run_does_not_write() -> std::result::Result<(), Box<dyn std::error::Error>> {
+        let dir = TempDir::new()?;
         let writer = Writer::new(dir.path(), true, FolderStructure::Flat);
         let mut state = PullState::default();
 
@@ -151,7 +153,7 @@ mod tests {
             platform: Platform::DevTo,
             title: "Test Article".to_string(),
             body_markdown: "Hello, world!".to_string(),
-            published_at: Some("2024-03-15T10:00:00Z".parse().unwrap()),
+            published_at: Some("2024-03-15T10:00:00Z".parse()?),
             url: None,
             tags: vec![],
             series: None,
@@ -159,9 +161,10 @@ mod tests {
             is_draft: false,
         };
 
-        let relative_path = writer.write_article(&article, &mut state).unwrap();
+        let relative_path = writer.write_article(&article, &mut state)?;
         let filepath = dir.path().join(&relative_path);
         assert!(!filepath.exists());
         assert!(!state.is_pulled("devto:123"));
+        Ok(())
     }
 }
