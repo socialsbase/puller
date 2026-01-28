@@ -74,7 +74,7 @@ mod tests {
         let content = std::fs::read_to_string(filepath).unwrap();
         assert!(content.contains("title: Test Article"));
         assert!(content.contains("Hello, world!"));
-        assert!(content.contains("# Pulled from: https://dev.to/user/test-article"));
+        assert!(content.contains("# Platform ID: devto:123"));
     }
 
     #[test]

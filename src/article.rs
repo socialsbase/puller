@@ -57,10 +57,7 @@ impl PulledArticle {
         output.push_str("---\n");
         output.push_str(&yaml);
 
-        // Add metadata comments
-        if let Some(url) = &self.url {
-            output.push_str(&format!("# Pulled from: {}\n", url));
-        }
+        // Add platform ID comment for tracking
         output.push_str(&format!(
             "# Platform ID: {}:{}\n",
             self.platform, self.platform_id
