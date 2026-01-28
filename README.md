@@ -207,7 +207,7 @@ jobs:
       contents: write
 ```
 
-Without this permission, the action will fail with a 403 error when attempting to push.
+Without this permission, the action will fail with a "Missing required permission: contents: write" error.
 
 ### Complete Workflow Example
 
