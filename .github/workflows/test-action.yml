@@ -39,7 +39,7 @@ jobs:
           mkdir -p test-content
 
           if [ -n "$VIBE_FOREM_API_KEY" ]; then
-            puller pull --platform devto test-content --dry-run
+            puller pull --platform devto test-content --dry-run --structure flat
           else
             echo "VIBE_FOREM_API_KEY not set, skipping API test"
             echo "Testing binary execution..."
