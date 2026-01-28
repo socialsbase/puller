@@ -30,7 +30,7 @@ tokio-test = "0.4"
 [dev-dependencies.cargo-husky]
 version = "1"
 default-features = false
-features = ["precommit-hook", "run-cargo-fmt", "run-cargo-clippy"]
+features = ["precommit-hook", "run-cargo-fmt", "run-cargo-clippy", "user-hooks"]
 
 [lints.rust]
 unsafe_code = "warn"

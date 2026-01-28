@@ -1,0 +1,5 @@
+[default.extend-words]
+# Add any project-specific words to ignore here
+
+[files]
+extend-exclude = ["target/", "*.lock"]
