@@ -1,0 +1,98 @@
+name: Test Action
+
+on:
+  pull_request:
+    paths:
+      - 'action.yml'
+      - '.github/workflows/test-action.yml'
+  workflow_dispatch:
+
+jobs:
+  test-dry-run:
+    name: Test dry-run (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build puller binary
+        run: cargo build --release
+
+      - name: Setup local binary
+        run: |
+          mkdir -p "${{ runner.temp }}/puller"
+          cp target/release/puller "${{ runner.temp }}/puller/puller"
+          chmod +x "${{ runner.temp }}/puller/puller"
+          echo "${{ runner.temp }}/puller" >> $GITHUB_PATH
+
+      - name: Test action (dry-run)
+        id: puller
+        env:
+          DEVTO_API_KEY: ${{ secrets.DEVTO_API_KEY }}
+        run: |
+          # Since we can't use the action directly (needs published release),
+          # we test the puller binary directly with dry-run
+          mkdir -p test-content
+
+          if [ -n "$DEVTO_API_KEY" ]; then
+            puller pull --platform devto test-content --dry-run
+          else
+            echo "DEVTO_API_KEY not set, skipping API test"
+            echo "Testing binary execution..."
+            puller --version
+          fi
+
+      - name: Verify no files created
+        run: |
+          # In dry-run, no markdown files should be created
+          if ls test-content/*.md 2>/dev/null; then
+            echo "::error::Dry-run mode created files!"
+            exit 1
+          fi
+          echo "Dry-run verification passed: no files created"
+
+  test-action-definition:
+    name: Validate action.yml
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate action.yml syntax
+        run: |
+          # Check that action.yml is valid YAML
+          python3 -c "import yaml; yaml.safe_load(open('action.yml'))"
+          echo "action.yml is valid YAML"
+
+      - name: Check required fields
+        run: |
+          # Verify required fields exist
+          python3 << 'EOF'
+          import yaml
+
+          with open('action.yml') as f:
+              action = yaml.safe_load(f)
+
+          required_fields = ['name', 'description', 'inputs', 'outputs', 'runs']
+          for field in required_fields:
+              if field not in action:
+                  raise ValueError(f"Missing required field: {field}")
+
+          required_inputs = ['platform', 'output-dir']
+          for inp in required_inputs:
+              if inp not in action['inputs']:
+                  raise ValueError(f"Missing required input: {inp}")
+
+          required_outputs = ['pulled-count', 'skipped-count', 'committed', 'commit-sha']
+          for out in required_outputs:
+              if out not in action['outputs']:
+                  raise ValueError(f"Missing required output: {out}")
+
+          if action['runs']['using'] != 'composite':
+              raise ValueError("Action must be a composite action")
+
+          print("All required fields present!")
+          EOF

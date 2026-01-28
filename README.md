@@ -17,11 +17,22 @@ Puller is a multi-platform content archiving CLI designed to pull and archive yo
 
 ## Installation
 
-### Prerequisites
+### Pre-built binaries
 
-- Rust 1.70+ and Cargo
+Download the latest binary for your platform from the [Releases](https://github.com/socialsbase/puller/releases) page:
+
+| Platform | Binary |
+|----------|--------|
+| Linux x86_64 (glibc) | `puller-linux-x86_64-gnu` |
+| Linux x86_64 (musl) | `puller-linux-x86_64-musl` |
+| Linux aarch64 | `puller-linux-aarch64` |
+| macOS x86_64 | `puller-macos-x86_64` |
+| macOS aarch64 (Apple Silicon) | `puller-macos-aarch64` |
+| Windows x86_64 | `puller-windows-x86_64.exe` |
 
 ### Build from source
+
+Prerequisites: Rust 1.70+ and Cargo
 
 ```bash
 cargo build --release
@@ -132,6 +143,80 @@ Get your API key from https://dev.to/settings/extensions
 ```bash
 DEVTO_API_KEY=your_api_key
 ```
+
+## GitHub Action
+
+Use puller as a reusable GitHub Action to automatically sync content to a branch.
+
+### Basic Usage
+
+```yaml
+- uses: socialsbase/puller@v1
+  env:
+    DEVTO_API_KEY: ${{ secrets.DEVTO_API_KEY }}
+  with:
+    platform: devto
+    output-dir: content
+```
+
+### Inputs
+
+| Input | Required | Default | Description |
+|-------|----------|---------|-------------|
+| `platform` | Yes | `devto` | Platform to pull from |
+| `output-dir` | Yes | `content` | Directory for pulled content |
+| `branch` | No | `live` | Target branch for commits |
+| `since` | No | - | Only pull articles since date (YYYY-MM-DD) |
+| `exclude-drafts` | No | `false` | Skip draft articles |
+| `force` | No | `false` | Re-pull existing articles |
+| `dry-run` | No | `false` | Preview only, no commits |
+| `commit-message` | No | auto | Custom commit message |
+| `version` | No | `latest` | Puller version to use |
+
+### Outputs
+
+| Output | Description |
+|--------|-------------|
+| `pulled-count` | Number of articles pulled |
+| `skipped-count` | Number of articles skipped |
+| `committed` | Whether changes were committed (`true`/`false`) |
+| `commit-sha` | Commit SHA if changes were committed |
+
+### Complete Workflow Example
+
+```yaml
+name: Sync Dev.to Content
+
+on:
+  schedule:
+    - cron: '0 6 * * *'  # Daily at 6 AM UTC
+  workflow_dispatch:
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Pull articles
+        id: puller
+        uses: socialsbase/puller@v1
+        env:
+          DEVTO_API_KEY: ${{ secrets.DEVTO_API_KEY }}
+        with:
+          platform: devto
+          output-dir: content
+          branch: live
+          exclude-drafts: true
+
+      - name: Summary
+        run: |
+          echo "Pulled: ${{ steps.puller.outputs.pulled-count }}"
+          echo "Skipped: ${{ steps.puller.outputs.skipped-count }}"
+          echo "Committed: ${{ steps.puller.outputs.committed }}"
+```
+
+See [`examples/workflows/`](examples/workflows/) for more examples.
 
 ## Project Structure
 

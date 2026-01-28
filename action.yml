@@ -1,0 +1,227 @@
+name: 'Puller - Content Sync'
+description: 'Pull content from social platforms (Dev.to) and auto-commit to a branch'
+author: 'socialsbase'
+branding:
+  icon: 'download-cloud'
+  color: 'blue'
+
+inputs:
+  platform:
+    description: 'Platform to pull from'
+    required: true
+    default: 'devto'
+  output-dir:
+    description: 'Directory for pulled content'
+    required: true
+    default: 'content'
+  branch:
+    description: 'Target branch for commits'
+    required: false
+    default: 'live'
+  since:
+    description: 'Only pull articles published since this date (YYYY-MM-DD)'
+    required: false
+  exclude-drafts:
+    description: 'Skip draft articles'
+    required: false
+    default: 'false'
+  force:
+    description: 'Re-pull existing articles'
+    required: false
+    default: 'false'
+  dry-run:
+    description: 'Preview only, do not write files or commit'
+    required: false
+    default: 'false'
+  commit-message:
+    description: 'Custom commit message (default: auto-generated)'
+    required: false
+  version:
+    description: 'Puller version to use (default: latest)'
+    required: false
+    default: 'latest'
+
+outputs:
+  pulled-count:
+    description: 'Number of articles pulled'
+    value: ${{ steps.run-puller.outputs.pulled_count }}
+  skipped-count:
+    description: 'Number of articles skipped'
+    value: ${{ steps.run-puller.outputs.skipped_count }}
+  committed:
+    description: 'Whether changes were committed'
+    value: ${{ steps.commit.outputs.committed }}
+  commit-sha:
+    description: 'Commit SHA if changes were committed'
+    value: ${{ steps.commit.outputs.commit_sha }}
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Detect platform and architecture
+      id: detect
+      shell: bash
+      run: |
+        OS="${{ runner.os }}"
+        ARCH="${{ runner.arch }}"
+
+        case "$OS" in
+          Linux)
+            case "$ARCH" in
+              X64)  BINARY="puller-linux-x86_64-musl" ;;
+              ARM64) BINARY="puller-linux-aarch64" ;;
+              *) echo "::error::Unsupported architecture: $ARCH"; exit 1 ;;
+            esac
+            ;;
+          macOS)
+            case "$ARCH" in
+              X64)  BINARY="puller-macos-x86_64" ;;
+              ARM64) BINARY="puller-macos-aarch64" ;;
+              *) echo "::error::Unsupported architecture: $ARCH"; exit 1 ;;
+            esac
+            ;;
+          Windows)
+            BINARY="puller-windows-x86_64.exe"
+            ;;
+          *)
+            echo "::error::Unsupported OS: $OS"
+            exit 1
+            ;;
+        esac
+
+        echo "binary=$BINARY" >> $GITHUB_OUTPUT
+        echo "Selected binary: $BINARY"
+
+    - name: Get latest release version
+      id: version
+      shell: bash
+      run: |
+        if [ "${{ inputs.version }}" = "latest" ]; then
+          VERSION=$(curl -sL https://api.github.com/repos/socialsbase/puller/releases/latest | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
+          if [ -z "$VERSION" ]; then
+            echo "::error::Failed to fetch latest version"
+            exit 1
+          fi
+        else
+          VERSION="${{ inputs.version }}"
+        fi
+        echo "version=$VERSION" >> $GITHUB_OUTPUT
+        echo "Using puller version: $VERSION"
+
+    - name: Download puller binary
+      shell: bash
+      run: |
+        DOWNLOAD_URL="https://github.com/socialsbase/puller/releases/download/${{ steps.version.outputs.version }}/${{ steps.detect.outputs.binary }}"
+        echo "Downloading from: $DOWNLOAD_URL"
+
+        mkdir -p "${{ runner.temp }}/puller"
+        curl -sL "$DOWNLOAD_URL" -o "${{ runner.temp }}/puller/puller"
+
+        if [ "${{ runner.os }}" != "Windows" ]; then
+          chmod +x "${{ runner.temp }}/puller/puller"
+        fi
+
+        echo "${{ runner.temp }}/puller" >> $GITHUB_PATH
+
+    - name: Configure git
+      shell: bash
+      run: |
+        git config user.name "github-actions[bot]"
+        git config user.email "github-actions[bot]@users.noreply.github.com"
+
+    - name: Setup target branch
+      if: inputs.dry-run != 'true'
+      shell: bash
+      run: |
+        TARGET_BRANCH="${{ inputs.branch }}"
+
+        # Fetch all branches
+        git fetch origin --prune
+
+        # Check if target branch exists
+        if git ls-remote --exit-code --heads origin "$TARGET_BRANCH" > /dev/null 2>&1; then
+          echo "Branch '$TARGET_BRANCH' exists, checking out..."
+          git checkout "$TARGET_BRANCH"
+          git pull origin "$TARGET_BRANCH"
+        else
+          echo "Branch '$TARGET_BRANCH' does not exist, creating from default branch..."
+          # Get default branch
+          DEFAULT_BRANCH=$(git remote show origin | grep 'HEAD branch' | awk '{print $NF}')
+          git checkout -b "$TARGET_BRANCH" "origin/$DEFAULT_BRANCH"
+        fi
+
+    - name: Run puller
+      id: run-puller
+      shell: bash
+      env:
+        DEVTO_API_KEY: ${{ env.DEVTO_API_KEY }}
+      run: |
+        # Build command arguments
+        ARGS="pull --platform ${{ inputs.platform }} ${{ inputs.output-dir }}"
+
+        if [ "${{ inputs.dry-run }}" = "true" ]; then
+          ARGS="$ARGS --dry-run"
+        fi
+
+        if [ -n "${{ inputs.since }}" ]; then
+          ARGS="$ARGS --since ${{ inputs.since }}"
+        fi
+
+        if [ "${{ inputs.exclude-drafts }}" = "true" ]; then
+          ARGS="$ARGS --exclude-drafts"
+        fi
+
+        if [ "${{ inputs.force }}" = "true" ]; then
+          ARGS="$ARGS --force"
+        fi
+
+        # Ensure output directory exists
+        mkdir -p "${{ inputs.output-dir }}"
+
+        echo "Running: puller $ARGS"
+        OUTPUT=$(puller $ARGS 2>&1) || true
+        echo "$OUTPUT"
+
+        # Parse output for counts
+        PULLED=$(echo "$OUTPUT" | grep -oP 'Pulled: \K\d+' || echo "0")
+        SKIPPED=$(echo "$OUTPUT" | grep -oP 'Skipped: \K\d+' || echo "0")
+
+        echo "pulled_count=$PULLED" >> $GITHUB_OUTPUT
+        echo "skipped_count=$SKIPPED" >> $GITHUB_OUTPUT
+
+        echo "Pulled: $PULLED, Skipped: $SKIPPED"
+
+    - name: Commit and push changes
+      id: commit
+      if: inputs.dry-run != 'true'
+      shell: bash
+      run: |
+        # Stage output directory
+        git add "${{ inputs.output-dir }}"
+
+        # Check for changes
+        if git diff --staged --quiet; then
+          echo "No changes to commit"
+          echo "committed=false" >> $GITHUB_OUTPUT
+          echo "commit_sha=" >> $GITHUB_OUTPUT
+          exit 0
+        fi
+
+        # Build commit message
+        PULLED="${{ steps.run-puller.outputs.pulled_count }}"
+        TIMESTAMP=$(date -u +"%Y-%m-%d %H:%M:%S UTC")
+
+        if [ -n "${{ inputs.commit-message }}" ]; then
+          COMMIT_MSG="${{ inputs.commit-message }}"
+        else
+          COMMIT_MSG="sync(${{ inputs.platform }}): pull ${PULLED} article(s) [${TIMESTAMP}]"
+        fi
+
+        # Commit and push
+        git commit -m "$COMMIT_MSG"
+        git push origin "${{ inputs.branch }}"
+
+        COMMIT_SHA=$(git rev-parse HEAD)
+        echo "committed=true" >> $GITHUB_OUTPUT
+        echo "commit_sha=$COMMIT_SHA" >> $GITHUB_OUTPUT
+        echo "Committed: $COMMIT_SHA"
