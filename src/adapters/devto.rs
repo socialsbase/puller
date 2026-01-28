@@ -1,3 +1,6 @@
+use std::collections::HashMap;
+use std::sync::RwLock;
+
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
 use reqwest::header::{HeaderMap, HeaderValue, ACCEPT, USER_AGENT};
@@ -12,12 +15,16 @@ use crate::platform::Platform;
 const DEVTO_API_BASE: &str = "https://dev.to/api";
 const PER_PAGE: u32 = 100;
 
-#[derive(Debug, Deserialize)]
+/// Article data from /articles/me/all endpoint (includes full content)
+#[derive(Debug, Deserialize, Clone)]
 struct DevToArticleListItem {
     id: u64,
     title: String,
+    body_markdown: String,
     published_at: Option<DateTime<Utc>>,
     url: String,
+    tag_list: Vec<String>,
+    canonical_url: Option<String>,
     published: bool,
 }
 
@@ -48,6 +55,8 @@ struct DevToSeries {
 pub struct DevToPuller {
     client: reqwest::Client,
     api_key: String,
+    /// Cache of articles fetched from list endpoint (for drafts that can't be fetched individually)
+    article_cache: RwLock<HashMap<String, DevToArticleListItem>>,
 }
 
 impl DevToPuller {
@@ -63,7 +72,11 @@ impl DevToPuller {
             .default_headers(headers)
             .build()?;
 
-        Ok(Self { client, api_key })
+        Ok(Self {
+            client,
+            api_key,
+            article_cache: RwLock::new(HashMap::new()),
+        })
     }
 
     async fn fetch_page(&self, page: u32) -> Result<Vec<DevToArticleListItem>> {
@@ -131,8 +144,16 @@ impl Puller for DevToPuller {
                     continue;
                 }
 
+                let id_str = article.id.to_string();
+
+                // Cache article data for later fetch (needed for drafts)
+                {
+                    let mut cache = self.article_cache.write().unwrap();
+                    cache.insert(id_str.clone(), article.clone());
+                }
+
                 all_articles.push(ArticleMetadata {
-                    id: article.id.to_string(),
+                    id: id_str,
                     platform: Platform::DevTo,
                     title: article.title,
                     published_at: article.published_at,
@@ -151,6 +172,29 @@ impl Puller for DevToPuller {
     }
 
     async fn fetch_article(&self, id: &str) -> Result<PulledArticle> {
+        // Check cache first (needed for drafts which can't be fetched via public API)
+        {
+            let cache = self.article_cache.read().unwrap();
+            if let Some(article) = cache.get(id) {
+                return Ok(PulledArticle {
+                    platform_id: article.id.to_string(),
+                    platform: Platform::DevTo,
+                    title: article.title.clone(),
+                    body_markdown: article.body_markdown.clone(),
+                    published_at: article.published_at,
+                    url: Url::parse(&article.url).ok(),
+                    tags: article.tag_list.clone(),
+                    series: None, // Series not available in list endpoint
+                    canonical_url: article
+                        .canonical_url
+                        .as_ref()
+                        .and_then(|u| Url::parse(u).ok()),
+                    is_draft: !article.published,
+                });
+            }
+        }
+
+        // Fall back to API for published articles
         let url = format!("{}/articles/{}", DEVTO_API_BASE, id);
 
         let response = self
