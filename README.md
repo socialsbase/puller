@@ -21,14 +21,14 @@ Puller is a multi-platform content archiving CLI designed to pull and archive yo
 
 Download the latest binary for your platform from the [Releases](https://github.com/socialsbase/puller/releases) page:
 
-| Platform | Binary |
-|----------|--------|
-| Linux x86_64 (glibc) | `puller-linux-x86_64-gnu` |
-| Linux x86_64 (musl) | `puller-linux-x86_64-musl` |
-| Linux aarch64 | `puller-linux-aarch64` |
-| macOS x86_64 | `puller-macos-x86_64` |
-| macOS aarch64 (Apple Silicon) | `puller-macos-aarch64` |
-| Windows x86_64 | `puller-windows-x86_64.exe` |
+| Platform                      | Binary                      |
+| ----------------------------- | --------------------------- |
+| Linux x86_64 (glibc)          | `puller-linux-x86_64-gnu`   |
+| Linux x86_64 (musl)           | `puller-linux-x86_64-musl`  |
+| Linux aarch64                 | `puller-linux-aarch64`      |
+| macOS x86_64                  | `puller-macos-x86_64`       |
+| macOS aarch64 (Apple Silicon) | `puller-macos-aarch64`      |
+| Windows x86_64                | `puller-windows-x86_64.exe` |
 
 ### Build from source
 
@@ -106,7 +106,6 @@ tags:
   - cli
 series: "Rust CLI Series"
 canonical_url: https://mysite.com/original
-# Pulled from: https://dev.to/user/article-abc123
 # Platform ID: devto:12345
 ---
 
@@ -161,26 +160,26 @@ Use puller as a reusable GitHub Action to automatically sync content to a branch
 
 ### Inputs
 
-| Input | Required | Default | Description |
-|-------|----------|---------|-------------|
-| `platform` | Yes | `devto` | Platform to pull from |
-| `output-dir` | Yes | `content` | Directory for pulled content |
-| `branch` | No | `live` | Target branch for commits |
-| `since` | No | - | Only pull articles since date (YYYY-MM-DD) |
-| `exclude-drafts` | No | `false` | Skip draft articles |
-| `force` | No | `false` | Re-pull existing articles |
-| `dry-run` | No | `false` | Preview only, no commits |
-| `commit-message` | No | auto | Custom commit message |
-| `version` | No | `latest` | Puller version to use |
+| Input            | Required | Default   | Description                                |
+| ---------------- | -------- | --------- | ------------------------------------------ |
+| `platform`       | Yes      | `devto`   | Platform to pull from                      |
+| `output-dir`     | Yes      | `content` | Directory for pulled content               |
+| `branch`         | No       | `live`    | Target branch for commits                  |
+| `since`          | No       | -         | Only pull articles since date (YYYY-MM-DD) |
+| `exclude-drafts` | No       | `false`   | Skip draft articles                        |
+| `force`          | No       | `false`   | Re-pull existing articles                  |
+| `dry-run`        | No       | `false`   | Preview only, no commits                   |
+| `commit-message` | No       | auto      | Custom commit message                      |
+| `version`        | No       | `latest`  | Puller version to use                      |
 
 ### Outputs
 
-| Output | Description |
-|--------|-------------|
-| `pulled-count` | Number of articles pulled |
-| `skipped-count` | Number of articles skipped |
-| `committed` | Whether changes were committed (`true`/`false`) |
-| `commit-sha` | Commit SHA if changes were committed |
+| Output          | Description                                     |
+| --------------- | ----------------------------------------------- |
+| `pulled-count`  | Number of articles pulled                       |
+| `skipped-count` | Number of articles skipped                      |
+| `committed`     | Whether changes were committed (`true`/`false`) |
+| `commit-sha`    | Commit SHA if changes were committed            |
 
 ### Complete Workflow Example
 
@@ -189,7 +188,7 @@ name: Sync Dev.to Content
 
 on:
   schedule:
-    - cron: '0 6 * * *'  # Daily at 6 AM UTC
+    - cron: "0 6 * * *" # Daily at 6 AM UTC
   workflow_dispatch:
 
 jobs:
