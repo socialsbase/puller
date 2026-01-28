@@ -51,9 +51,9 @@ enum Commands {
         #[arg(long)]
         force: bool,
 
-        /// Include draft articles
+        /// Exclude draft articles
         #[arg(long)]
-        include_drafts: bool,
+        exclude_drafts: bool,
     },
 
     /// List articles from a platform without downloading
@@ -66,9 +66,9 @@ enum Commands {
         #[arg(long)]
         since: Option<String>,
 
-        /// Include draft articles
+        /// Exclude draft articles
         #[arg(long)]
-        include_drafts: bool,
+        exclude_drafts: bool,
     },
 }
 
@@ -93,14 +93,14 @@ async fn run_pull(
     dry_run: bool,
     since: Option<String>,
     force: bool,
-    include_drafts: bool,
+    exclude_drafts: bool,
 ) -> Result<()> {
     let config = Config::from_env();
     let puller = create_puller(platform, &config)?;
 
     let options = PullOptions {
         since: since.map(|s| parse_date(&s)).transpose()?,
-        include_drafts,
+        include_drafts: !exclude_drafts,
     };
 
     let writer = Writer::new(&output_dir, dry_run);
@@ -158,13 +158,13 @@ async fn run_pull(
     Ok(())
 }
 
-async fn run_list(platform: &str, since: Option<String>, include_drafts: bool) -> Result<()> {
+async fn run_list(platform: &str, since: Option<String>, exclude_drafts: bool) -> Result<()> {
     let config = Config::from_env();
     let puller = create_puller(platform, &config)?;
 
     let options = PullOptions {
         since: since.map(|s| parse_date(&s)).transpose()?,
-        include_drafts,
+        include_drafts: !exclude_drafts,
     };
 
     println!("Fetching article list from {}...", puller.platform());
@@ -200,13 +200,13 @@ async fn main() {
             dry_run,
             since,
             force,
-            include_drafts,
-        } => run_pull(&platform, output_dir, dry_run, since, force, include_drafts).await,
+            exclude_drafts,
+        } => run_pull(&platform, output_dir, dry_run, since, force, exclude_drafts).await,
         Commands::List {
             platform,
             since,
-            include_drafts,
-        } => run_list(&platform, since, include_drafts).await,
+            exclude_drafts,
+        } => run_list(&platform, since, exclude_drafts).await,
     };
 
     if let Err(e) = result {

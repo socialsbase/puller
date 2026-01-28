@@ -68,7 +68,7 @@ impl DevToPuller {
 
     async fn fetch_page(&self, page: u32) -> Result<Vec<DevToArticleListItem>> {
         let url = format!(
-            "{}/articles/me?page={}&per_page={}",
+            "{}/articles/me/all?page={}&per_page={}",
             DEVTO_API_BASE, page, PER_PAGE
         );
 
