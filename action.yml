@@ -33,6 +33,10 @@ inputs:
     description: 'Preview only, do not write files or commit'
     required: false
     default: 'false'
+  structure:
+    description: 'Folder structure: "platform" (default) for platform subfolders, "flat" for no subfolders'
+    required: false
+    default: 'platform'
   commit-message:
     description: 'Custom commit message (default: auto-generated)'
     required: false
@@ -173,6 +177,10 @@ runs:
 
         if [ "${{ inputs.force }}" = "true" ]; then
           ARGS="$ARGS --force"
+        fi
+
+        if [ -n "${{ inputs.structure }}" ]; then
+          ARGS="$ARGS --structure ${{ inputs.structure }}"
         fi
 
         # Ensure output directory exists

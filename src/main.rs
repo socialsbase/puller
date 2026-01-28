@@ -17,7 +17,7 @@ use config::Config;
 use error::{PullError, Result};
 use platform::Platform;
 use state::PullState;
-use writer::Writer;
+use writer::{FolderStructure, Writer};
 
 #[derive(Parser)]
 #[command(name = "puller")]
@@ -54,6 +54,10 @@ enum Commands {
         /// Exclude draft articles
         #[arg(long)]
         exclude_drafts: bool,
+
+        /// Folder structure for output files
+        #[arg(long, value_enum, default_value = "platform")]
+        structure: FolderStructure,
     },
 
     /// List articles from a platform without downloading
@@ -94,6 +98,7 @@ async fn run_pull(
     since: Option<String>,
     force: bool,
     exclude_drafts: bool,
+    structure: FolderStructure,
 ) -> Result<()> {
     let config = Config::from_env();
     let puller = create_puller(platform, &config)?;
@@ -103,7 +108,7 @@ async fn run_pull(
         include_drafts: !exclude_drafts,
     };
 
-    let writer = Writer::new(&output_dir, dry_run);
+    let writer = Writer::new(&output_dir, dry_run, structure);
     writer.ensure_output_dir()?;
 
     let mut state = if dry_run {
@@ -200,7 +205,19 @@ async fn main() {
             since,
             force,
             exclude_drafts,
-        } => run_pull(&platform, output_dir, dry_run, since, force, exclude_drafts).await,
+            structure,
+        } => {
+            run_pull(
+                &platform,
+                output_dir,
+                dry_run,
+                since,
+                force,
+                exclude_drafts,
+                structure,
+            )
+            .await
+        }
         Commands::List {
             platform,
             since,
