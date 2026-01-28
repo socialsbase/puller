@@ -32,16 +32,16 @@ jobs:
       - name: Test action (dry-run)
         id: puller
         env:
-          DEVTO_API_KEY: ${{ secrets.DEVTO_API_KEY }}
+          VIBE_FOREM_API_KEY: ${{ secrets.VIBE_FOREM_API_KEY }}
         run: |
           # Since we can't use the action directly (needs published release),
           # we test the puller binary directly with dry-run
           mkdir -p test-content
 
-          if [ -n "$DEVTO_API_KEY" ]; then
+          if [ -n "$VIBE_FOREM_API_KEY" ]; then
             puller pull --platform devto test-content --dry-run
           else
-            echo "DEVTO_API_KEY not set, skipping API test"
+            echo "VIBE_FOREM_API_KEY not set, skipping API test"
             echo "Testing binary execution..."
             puller --version
           fi

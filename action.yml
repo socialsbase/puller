@@ -178,7 +178,7 @@ runs:
       id: run-puller
       shell: bash
       env:
-        DEVTO_API_KEY: ${{ env.DEVTO_API_KEY }}
+        VIBE_FOREM_API_KEY: ${{ env.VIBE_FOREM_API_KEY }}
       run: |
         # Build command arguments
         ARGS="pull --platform ${{ inputs.platform }} ${{ inputs.output-dir }}"

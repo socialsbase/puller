@@ -148,12 +148,14 @@ This prevents re-downloading articles on subsequent runs unless `--force` is use
 
 Create a `.env` file or set environment variables:
 
-#### Dev.to
+#### Dev.to / Vibe Forem
 
-Get your API key from https://dev.to/settings/extensions
+Both Dev.to and Vibe Forem use the Forem platform, so they share the same API key configuration.
+
+Get your API key from https://dev.to/settings/extensions (for Dev.to) or your Forem instance settings.
 
 ```bash
-DEVTO_API_KEY=your_api_key
+VIBE_FOREM_API_KEY=your_api_key
 ```
 
 ## GitHub Action
@@ -165,7 +167,7 @@ Use puller as a reusable GitHub Action to automatically sync content to a branch
 ```yaml
 - uses: socialsbase/puller@v1
   env:
-    DEVTO_API_KEY: ${{ secrets.DEVTO_API_KEY }}
+    VIBE_FOREM_API_KEY: ${{ secrets.VIBE_FOREM_API_KEY }}
   with:
     platform: devto
     output-dir: content
@@ -231,7 +233,7 @@ jobs:
         id: puller
         uses: socialsbase/puller@v1
         env:
-          DEVTO_API_KEY: ${{ secrets.DEVTO_API_KEY }}
+          VIBE_FOREM_API_KEY: ${{ secrets.VIBE_FOREM_API_KEY }}
         with:
           platform: devto
           output-dir: content

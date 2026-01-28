@@ -1,4 +1,5 @@
 pub mod devto;
+pub mod vibe_forem;
 
 use async_trait::async_trait;
 use chrono::{DateTime, NaiveDate, Utc};

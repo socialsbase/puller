@@ -9,6 +9,7 @@ use crate::error::PullError;
 #[serde(rename_all = "lowercase")]
 pub enum Platform {
     DevTo,
+    VibeForem,
 }
 
 impl Platform {
@@ -16,6 +17,7 @@ impl Platform {
     pub fn as_str(self) -> &'static str {
         match self {
             Self::DevTo => "devto",
+            Self::VibeForem => "vibeforem",
         }
     }
 }
@@ -32,6 +34,7 @@ impl FromStr for Platform {
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s.to_lowercase().as_str() {
             "devto" | "dev.to" | "dev" => Ok(Self::DevTo),
+            "vibeforem" | "vibe.forem" | "vibe" => Ok(Self::VibeForem),
             _ => Err(PullError::UnsupportedPlatform(s.to_string())),
         }
     }

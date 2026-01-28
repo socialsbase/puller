@@ -12,6 +12,7 @@ use chrono::NaiveDate;
 use clap::{Parser, Subcommand};
 
 use adapters::devto::DevToPuller;
+use adapters::vibe_forem::VibeForemPuller;
 use adapters::{PullOptions, Puller};
 use config::Config;
 use error::{PullError, Result};
@@ -83,11 +84,10 @@ fn parse_date(s: &str) -> Result<NaiveDate> {
 
 fn create_puller(platform: &str, config: &Config) -> Result<Box<dyn Puller>> {
     let platform: Platform = platform.parse()?;
+    let api_key = config.forem_api_key()?.to_string();
     match platform {
-        Platform::DevTo => {
-            let api_key = config.devto_api_key()?.to_string();
-            Ok(Box::new(DevToPuller::new(api_key)?))
-        }
+        Platform::DevTo => Ok(Box::new(DevToPuller::new(api_key)?)),
+        Platform::VibeForem => Ok(Box::new(VibeForemPuller::new(api_key)?)),
     }
 }
 

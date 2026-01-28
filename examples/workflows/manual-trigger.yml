@@ -4,7 +4,7 @@
 # Useful for one-time syncs or testing before setting up scheduled runs.
 #
 # Setup:
-# 1. Add DEVTO_API_KEY to your repository secrets
+# 1. Add VIBE_FOREM_API_KEY to your repository secrets
 # 2. Copy this file to .github/workflows/manual-sync.yml
 # 3. Go to Actions > Manual Content Sync > Run workflow
 
@@ -60,7 +60,7 @@ jobs:
         id: puller
         uses: socialsbase/puller@v1
         env:
-          DEVTO_API_KEY: ${{ secrets.DEVTO_API_KEY }}
+          VIBE_FOREM_API_KEY: ${{ secrets.VIBE_FOREM_API_KEY }}
         with:
           platform: ${{ inputs.platform }}
           output-dir: ${{ inputs.output-dir }}
