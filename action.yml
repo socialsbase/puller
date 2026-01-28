@@ -133,6 +133,24 @@ runs:
         git config user.name "github-actions[bot]"
         git config user.email "github-actions[bot]@users.noreply.github.com"
 
+    - name: Check write permissions
+      if: inputs.dry-run != 'true'
+      shell: bash
+      env:
+        GH_TOKEN: ${{ github.token }}
+      run: |
+        # Check if we have push permission using GitHub API
+        PUSH_ACCESS=$(curl -s -H "Authorization: token $GH_TOKEN" \
+          -H "Accept: application/vnd.github.v3+json" \
+          "https://api.github.com/repos/$GITHUB_REPOSITORY" | grep -o '"push":[^,]*' | cut -d: -f2 | tr -d ' ')
+
+        if [ "$PUSH_ACCESS" != "true" ]; then
+          echo "::error::Missing required permission: contents: write"
+          echo "::error::Add 'permissions: contents: write' to your workflow file"
+          exit 1
+        fi
+        echo "Write permissions verified"
+
     - name: Setup target branch
       if: inputs.dry-run != 'true'
       shell: bash
@@ -179,16 +197,26 @@ runs:
           ARGS="$ARGS --force"
         fi
 
-        if [ -n "${{ inputs.structure }}" ]; then
-          ARGS="$ARGS --structure ${{ inputs.structure }}"
-        fi
+        # Note: --structure flag is not yet supported by puller binary
+        # TODO: Uncomment when puller supports this flag
+        # if [ -n "${{ inputs.structure }}" ]; then
+        #   ARGS="$ARGS --structure ${{ inputs.structure }}"
+        # fi
 
         # Ensure output directory exists
         mkdir -p "${{ inputs.output-dir }}"
 
         echo "Running: puller $ARGS"
-        OUTPUT=$(puller $ARGS 2>&1) || true
+        set +e
+        OUTPUT=$(puller $ARGS 2>&1)
+        EXIT_CODE=$?
+        set -e
         echo "$OUTPUT"
+
+        if [ $EXIT_CODE -ne 0 ]; then
+          echo "::error::puller failed with exit code $EXIT_CODE"
+          exit $EXIT_CODE
+        fi
 
         # Parse output for counts
         PULLED=$(echo "$OUTPUT" | grep -oP 'Pulled: \K\d+' || echo "0")
