@@ -2,6 +2,7 @@ mod adapters;
 mod article;
 mod config;
 mod error;
+mod forem;
 mod platform;
 mod state;
 mod writer;
@@ -11,8 +12,7 @@ use std::path::PathBuf;
 use chrono::NaiveDate;
 use clap::{Parser, Subcommand};
 
-use adapters::devto::DevToPuller;
-use adapters::vibe_forem::VibeForemPuller;
+use adapters::forem::ForemPuller;
 use adapters::{PullOptions, Puller};
 use config::Config;
 use error::{PullError, Result};
@@ -33,7 +33,7 @@ struct Cli {
 enum Commands {
     /// Pull articles from a platform
     Pull {
-        /// Platform to pull from (devto)
+        /// Platform to pull from (devto, vibe, forem:open, forem:custom:example.com, etc.)
         #[arg(short, long)]
         platform: String,
 
@@ -63,7 +63,7 @@ enum Commands {
 
     /// List articles from a platform without downloading
     List {
-        /// Platform to list from (devto)
+        /// Platform to list from (devto, vibe, forem:open, forem:custom:example.com, etc.)
         #[arg(short, long)]
         platform: String,
 
@@ -85,9 +85,9 @@ fn parse_date(s: &str) -> Result<NaiveDate> {
 fn create_puller(platform: &str, config: &Config) -> Result<Box<dyn Puller>> {
     let platform: Platform = platform.parse()?;
     let api_key = config.forem_api_key()?.to_string();
+
     match platform {
-        Platform::DevTo => Ok(Box::new(DevToPuller::new(api_key)?)),
-        Platform::VibeForem => Ok(Box::new(VibeForemPuller::new(api_key)?)),
+        Platform::Forem(instance) => Ok(Box::new(ForemPuller::new(instance, api_key)?)),
     }
 }
 

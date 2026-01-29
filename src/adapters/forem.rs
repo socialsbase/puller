@@ -1,3 +1,8 @@
+//! Generic Forem puller adapter that works with any Forem instance.
+//!
+//! This adapter supports pulling articles from all Forem-based communities
+//! including dev.to, vibe.forem.com, and custom Forem instances.
+
 use std::collections::HashMap;
 use std::sync::RwLock;
 
@@ -10,14 +15,14 @@ use url::Url;
 use super::{ArticleMetadata, PullOptions, Puller};
 use crate::article::PulledArticle;
 use crate::error::{PullError, Result};
+use crate::forem::ForemInstance;
 use crate::platform::Platform;
 
-const DEVTO_API_BASE: &str = "https://dev.to/api";
 const PER_PAGE: u32 = 100;
 
 /// Article data from /articles/me/all endpoint (includes full content)
 #[derive(Debug, Deserialize, Clone)]
-struct DevToArticleListItem {
+struct ForemArticleListItem {
     id: u64,
     title: String,
     body_markdown: String,
@@ -29,7 +34,7 @@ struct DevToArticleListItem {
 }
 
 #[derive(Debug, Deserialize)]
-struct DevToArticle {
+struct ForemArticle {
     id: u64,
     title: String,
     body_markdown: String,
@@ -37,7 +42,7 @@ struct DevToArticle {
     url: String,
     tags: Vec<String>,
     #[serde(default)]
-    series: Option<DevToSeries>,
+    series: Option<ForemSeries>,
     canonical_url: Option<String>,
     #[serde(default = "default_published")]
     published: bool,
@@ -48,19 +53,20 @@ fn default_published() -> bool {
 }
 
 #[derive(Debug, Deserialize)]
-struct DevToSeries {
+struct ForemSeries {
     name: String,
 }
 
-pub struct DevToPuller {
+pub struct ForemPuller {
+    instance: ForemInstance,
     client: reqwest::Client,
     api_key: String,
     /// Cache of articles fetched from list endpoint (for drafts that can't be fetched individually)
-    article_cache: RwLock<HashMap<String, DevToArticleListItem>>,
+    article_cache: RwLock<HashMap<String, ForemArticleListItem>>,
 }
 
-impl DevToPuller {
-    pub fn new(api_key: String) -> Result<Self> {
+impl ForemPuller {
+    pub fn new(instance: ForemInstance, api_key: String) -> Result<Self> {
         let mut headers = HeaderMap::new();
         headers.insert(
             ACCEPT,
@@ -73,14 +79,21 @@ impl DevToPuller {
             .build()?;
 
         Ok(Self {
+            instance,
             client,
             api_key,
             article_cache: RwLock::new(HashMap::new()),
         })
     }
 
-    async fn fetch_page(&self, page: u32) -> Result<Vec<DevToArticleListItem>> {
-        let url = format!("{DEVTO_API_BASE}/articles/me/all?page={page}&per_page={PER_PAGE}");
+    /// Returns the Forem instance this puller is configured for.
+    pub fn instance(&self) -> &ForemInstance {
+        &self.instance
+    }
+
+    async fn fetch_page(&self, page: u32) -> Result<Vec<ForemArticleListItem>> {
+        let base_url = self.instance.base_url();
+        let url = format!("{base_url}/articles/me/all?page={page}&per_page={PER_PAGE}");
 
         let response = self
             .client
@@ -103,7 +116,8 @@ impl DevToPuller {
             let status = response.status();
             let body = response.text().await.unwrap_or_default();
             return Err(PullError::Api(format!(
-                "Dev.to API returned {status}: {body}"
+                "{} API returned {status}: {body}",
+                self.instance.display_name()
             )));
         }
 
@@ -112,9 +126,9 @@ impl DevToPuller {
 }
 
 #[async_trait]
-impl Puller for DevToPuller {
+impl Puller for ForemPuller {
     fn platform(&self) -> Platform {
-        Platform::DevTo
+        Platform::Forem(self.instance.clone())
     }
 
     async fn list_articles(&self, options: &PullOptions) -> Result<Vec<ArticleMetadata>> {
@@ -153,7 +167,7 @@ impl Puller for DevToPuller {
 
                 all_articles.push(ArticleMetadata {
                     id: id_str,
-                    platform: Platform::DevTo,
+                    platform: Platform::Forem(self.instance.clone()),
                     title: article.title,
                     published_at: article.published_at,
                     url: Url::parse(&article.url).ok(),
@@ -180,7 +194,7 @@ impl Puller for DevToPuller {
             if let Some(article) = cache.get(id) {
                 return Ok(PulledArticle {
                     platform_id: article.id.to_string(),
-                    platform: Platform::DevTo,
+                    platform: Platform::Forem(self.instance.clone()),
                     title: article.title.clone(),
                     body_markdown: article.body_markdown.clone(),
                     published_at: article.published_at,
@@ -197,7 +211,8 @@ impl Puller for DevToPuller {
         }
 
         // Fall back to API for published articles
-        let url = format!("{DEVTO_API_BASE}/articles/{id}");
+        let base_url = self.instance.base_url();
+        let url = format!("{base_url}/articles/{id}");
 
         let response = self
             .client
@@ -224,15 +239,16 @@ impl Puller for DevToPuller {
             let status = response.status();
             let body = response.text().await.unwrap_or_default();
             return Err(PullError::Api(format!(
-                "Dev.to API returned {status}: {body}"
+                "{} API returned {status}: {body}",
+                self.instance.display_name()
             )));
         }
 
-        let article: DevToArticle = response.json().await?;
+        let article: ForemArticle = response.json().await?;
 
         Ok(PulledArticle {
             platform_id: article.id.to_string(),
-            platform: Platform::DevTo,
+            platform: Platform::Forem(self.instance.clone()),
             title: article.title,
             body_markdown: article.body_markdown,
             published_at: article.published_at,

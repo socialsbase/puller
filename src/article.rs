@@ -105,6 +105,7 @@ fn slugify(title: &str) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::forem::ForemInstance;
 
     #[test]
     fn test_slugify() {
@@ -121,7 +122,7 @@ mod tests {
     fn test_generate_filename() -> std::result::Result<(), Box<dyn std::error::Error>> {
         let article = PulledArticle {
             platform_id: "123".to_string(),
-            platform: Platform::DevTo,
+            platform: Platform::Forem(ForemInstance::DevTo),
             title: "Building CLI Tools in Rust".to_string(),
             body_markdown: "Content".to_string(),
             published_at: Some("2024-03-15T10:00:00Z".parse()?),
@@ -143,7 +144,7 @@ mod tests {
     fn test_generate_filename_draft() {
         let article = PulledArticle {
             platform_id: "123".to_string(),
-            platform: Platform::DevTo,
+            platform: Platform::Forem(ForemInstance::DevTo),
             title: "My Draft".to_string(),
             body_markdown: "Content".to_string(),
             published_at: None,

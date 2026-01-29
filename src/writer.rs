@@ -69,6 +69,7 @@ impl<'a> Writer<'a> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::forem::ForemInstance;
     use crate::platform::Platform;
     use tempfile::TempDir;
 
@@ -80,7 +81,7 @@ mod tests {
 
         let article = PulledArticle {
             platform_id: "123".to_string(),
-            platform: Platform::DevTo,
+            platform: Platform::Forem(ForemInstance::DevTo),
             title: "Test Article".to_string(),
             body_markdown: "Hello, world!".to_string(),
             published_at: Some("2024-03-15T10:00:00Z".parse()?),
@@ -112,7 +113,7 @@ mod tests {
 
         let article = PulledArticle {
             platform_id: "123".to_string(),
-            platform: Platform::DevTo,
+            platform: Platform::Forem(ForemInstance::DevTo),
             title: "Test Article".to_string(),
             body_markdown: "Hello, world!".to_string(),
             published_at: Some("2024-03-15T10:00:00Z".parse()?),
@@ -150,7 +151,7 @@ mod tests {
 
         let article = PulledArticle {
             platform_id: "123".to_string(),
-            platform: Platform::DevTo,
+            platform: Platform::Forem(ForemInstance::DevTo),
             title: "Test Article".to_string(),
             body_markdown: "Hello, world!".to_string(),
             published_at: Some("2024-03-15T10:00:00Z".parse()?),
