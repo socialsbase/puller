@@ -58,7 +58,7 @@ jobs:
 
       - name: Pull articles
         id: puller
-        uses: socialsbase/puller@v1
+        uses: socialsbase/puller-action@v1
         env:
           VIBE_FOREM_API_KEY: ${{ secrets.VIBE_FOREM_API_KEY }}
         with:
